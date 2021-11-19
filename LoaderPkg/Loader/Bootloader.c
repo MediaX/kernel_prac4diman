@@ -104,6 +104,19 @@ InitGraphics (
     return Status;
   }
 
+  // DEBUG ((DEBUG_INFO, "RESOL HOR: %d\n", GraphicsOutput->Mode->Info->HorizontalResolution));
+  // DEBUG ((DEBUG_INFO, "RESOL VERT: %d\n", GraphicsOutput->Mode->Info->VerticalResolution));
+  // EFI_GRAPHICS_OUTPUT_PROTOCOL_SET_MODE try = (GraphicsOutput->SetMode);
+  // for (my_i = 0; my_i <= GraphicsOutput->Mode->MaxMode; my_i++){
+  //   try(GraphicsOutput, my_i);
+  //   DEBUG ((DEBUG_INFO, "MODE No: %d\n", my_i));
+  //   DEBUG ((DEBUG_INFO, "RESOL HOR AFTER: %d\n", GraphicsOutput->Mode->Info->HorizontalResolution));
+  //   DEBUG ((DEBUG_INFO, "RESOL VERT AFTER: %d\n", GraphicsOutput->Mode->Info->VerticalResolution));
+  // }
+  
+  EFI_GRAPHICS_OUTPUT_PROTOCOL_SET_MODE SetMode = (GraphicsOutput->SetMode);
+  SetMode(GraphicsOutput, 19);
+
   //
   // LAB 1: Your code here.
   //
@@ -977,15 +990,15 @@ UefiMain (
   UINTN              EntryPoint;
   VOID               *GateData;
 
-#if 1 ///< Uncomment to await debugging
-  volatile BOOLEAN   Connected;
-  DEBUG ((DEBUG_INFO, "JOS: Awaiting debugger connection\n"));
+// #if 1 ///< Uncomment to await debugging
+//   volatile BOOLEAN   Connected;
+//   DEBUG ((DEBUG_INFO, "JOS: Awaiting debugger connection\n"));
 
-  Connected = FALSE;
-  while (!Connected) {
-    ;
-  }
-#endif
+//   Connected = FALSE;
+//   while (!Connected) {
+//     ;
+//   }
+// #endif
 
   Status = gRT->GetTime (&Now, NULL);
   if (EFI_ERROR (Status)) {
