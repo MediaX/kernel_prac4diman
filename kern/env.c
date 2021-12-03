@@ -85,7 +85,27 @@ envid2env(envid_t envid, struct Env **env_store, bool need_check_perm) {
  */
 void
 env_init(void) {
+    int i = 0;
+    // cprintf("NENV: %d\n", NENV);
+    for(i = 0; i < NENV; i++){
+        envs[i].env_id = 0;
+        // envs[i].binary = NULL;
+        if (i != NENV - 1){
+            envs[i].env_link = &(envs[i+1]);
+        } else {
+            envs[i].env_link = NULL;
+        }
+        // envs[i].env_parent_id = 0;
+        // envs[i].env_runs = 0;
+        envs[i].env_status = ENV_FREE;
+    }
+    env_free_list = envs;
 
+
+    // while(env_free_list != NULL){
+    //     cprintf("id: %d\n", env_free_list->env_id);
+    //     env_free_list = env_free_list->env_link;
+    // }
     /* Set up envs array */
 
     // LAB 3: Your code here
@@ -146,7 +166,12 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
     env->env_tf.tf_cs = GD_KT;
 
     // LAB 3: Your code here:
-    //static uintptr_t stack_top = 0x2000000;
+    // static uintptr_t stack_top = 0x2000000;
+    // env->env_tf.tf_rsp = stack_top - (env-envs)*PAGE_SIZE*2;
+    static uintptr_t STACK_TOP = 0x2000000;
+    env->env_tf.tf_rsp = STACK_TOP;
+    STACK_TOP -= 2 * PAGE_SIZE;
+    //cprintf("RSP_VAL: %lld\n", (long long)(envs-env));
 #else
     env->env_tf.tf_ds = GD_UD | 3;
     env->env_tf.tf_es = GD_UD | 3;
@@ -171,6 +196,43 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
 static int
 bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_start, uintptr_t image_end) {
     // LAB 3: Your code here:
+    struct Elf *elf = (struct Elf *)binary;
+    struct Secthdr *sh = (struct Secthdr *)(binary + elf->e_shoff);
+    char *sh_str = (char *)(binary + sh[elf->e_shstrndx].sh_offset);
+    int i = 0, rem = 0;
+
+
+    for (i = 0; i < elf->e_shnum; i++){
+        if ((sh[i].sh_type == ELF_SHT_STRTAB) && (!strcmp(".strtab", sh_str+sh[i].sh_name))){
+            rem = i;
+            break;
+        }
+    }
+
+    char *strings = (char *)binary + sh[rem].sh_offset;
+
+    for(i = 0; i < elf->e_shnum; i++){
+        if (sh[i].sh_type == ELF_SHT_SYMTAB){
+            int j = 0;
+            struct Elf64_Sym *syms = (struct Elf64_Sym *)(binary + sh[i].sh_offset);
+            int num_syms = sh[i].sh_size / sizeof(struct Elf64_Sym);
+            for (j = 0; j < num_syms; j++){
+                if ((ELF64_ST_BIND(syms[j].st_info) == STB_GLOBAL) && (ELF64_ST_TYPE(syms[j].st_info) == STT_OBJECT) && 
+                    (syms[j].st_size == sizeof(void *))){
+                    char *name = strings + syms[j].st_name;
+                    uintptr_t addr = find_function((name));
+                    cprintf("addr val %llx\n", (long long)addr);
+                    if (addr) {
+                        // cprintf ("YES\n");
+                        if ((syms[j].st_value >= image_start) && (syms[j].st_value <= image_end)){
+                            memcpy((void *)syms[j].st_value, &addr, sizeof(void *));
+                            cprintf("st_val val %lx\n", *(uint64_t *)syms[j].st_value);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /* NOTE: find_function from kdebug.c should be used */
 
@@ -220,8 +282,41 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
 static int
 load_icode(struct Env *env, uint8_t *binary, size_t size) {
     // LAB 3: Your code here
+    unsigned int i = 0;
+    uint64_t sum = 0;
+    struct Elf *elf_p;
+    struct Proghdr *prog_header;
+    elf_p = (struct Elf *)binary;
+    prog_header = (struct Proghdr *)(binary + elf_p->e_phoff);
+    // cprintf("Hello from load icode\n");
+    if (elf_p->e_magic != ELF_MAGIC) {
+        panic("Unexpected ELF format\n");
+        return -E_INVALID_EXE;
+    }
+    for(i = 0; i < (int)elf_p->e_phnum; i++){
+        // struct Proghdr *cur_ph = NULL;
+        // cur_ph = (struct Proghdr *)(binary + elf_p->e_phoff + (elf_p->e_phentsize * i));
 
+        if (prog_header[i].p_type == ELF_PROG_LOAD){
+            // prog_header[i].p_flags = ELF_PROG_FLAG_WRITE | ELF_PROG_FLAG_READ;
+            // cprintf("type %u\n", (unsigned int)cur_ph->p_type);
+            // cprintf("va 0x%lx\n", (unsigned long int)cur_ph->p_va);
+            // cprintf("pa 0x%lx\n", (unsigned long int)cur_ph->p_pa);
+            // cprintf("may be yes? 0x%lx\n", (unsigned long int)(binary + (unsigned long int)cur_ph->p_offset));
+            // cprintf("may be yes? 0x%lx\n", (unsigned long int)(cur_ph));
+            // cprintf("fsize %llu\n", (unsigned long long)cur_ph->p_filesz);
+            // cprintf("msize %llu\n", (unsigned long long)cur_ph->p_memsz); 
+            // cprintf("flags 0x%x\n", cur_ph->p_flags);
+            sum += prog_header[i].p_memsz;   
+            memcpy((void *)prog_header[i].p_va, 0, prog_header[i].p_memsz);
+            memcpy((void *)prog_header[i].p_va, (void *)((UINT64)binary + prog_header[i].p_offset), prog_header[i].p_filesz);
+        }
+    }
+    env->env_tf.tf_rip = elf_p->e_entry;
+    bind_functions(env, binary, size, (uintptr_t)elf_p->e_entry, (uintptr_t)(elf_p->e_entry + size));
+    // cprintf("\n\n");
     return 0;
+
 }
 
 /* Allocates a new env with env_alloc, loads the named elf
@@ -233,6 +328,13 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
 void
 env_create(uint8_t *binary, size_t size, enum EnvType type) {
     // LAB 3: Your code here
+    struct Env *env = NULL;
+    int r;
+    r = env_alloc(&env, 0, type);
+    if (r < 0)
+        panic("env alloc: %i", r);
+    env->binary = binary;
+    load_icode(env, binary, size);
 
 }
 
@@ -260,7 +362,11 @@ env_destroy(struct Env *env) {
     /* If env is currently running on other CPUs, we change its state to
      * ENV_DYING. A zombie environment will be freed the next time
      * it traps to the kernel. */
-
+    env->env_status = ENV_DYING;
+    env_free(env);
+    if (env == curenv) {
+        sched_yield();
+    }
     // LAB 3: Your code here
 
 }
@@ -352,8 +458,24 @@ env_run(struct Env *env) {
         if (curenv) cprintf("[%08X] env stopped: %s\n", curenv->env_id, state[curenv->env_status]);
         cprintf("[%08X] env started: %s\n", env->env_id, state[env->env_status]);
     }
-
+    // if ((curenv != NULL) && (env->env_id != curenv->env_id)){
+    //     if (curenv->env_status == ENV_RUNNING)
+    //         curenv->env_status = ENV_RUNNABLE;
+    // }
+    // if ((curenv == NULL) || (env->env_id != curenv->env_id)){
+    //     curenv = env;
+    //     curenv->env_status = ENV_RUNNING;
+    //     curenv->env_runs++;
+    // }
+    if (curenv) {
+        if (curenv->env_status == ENV_RUNNING) {
+            curenv->env_status = ENV_RUNNABLE;
+        }
+    }
+    curenv = env;
+    curenv->env_status = ENV_RUNNING;
+    curenv->env_runs++;
     // LAB 3: Your code here
-
+    env_pop_tf(&curenv->env_tf);
     while(1) {}
 }

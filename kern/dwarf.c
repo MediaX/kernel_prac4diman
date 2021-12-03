@@ -492,6 +492,7 @@ function_by_info(const struct Dwarf_Addrs *addrs, uintptr_t p, Dwarf_Off cu_offs
 
 int
 address_by_fname(const struct Dwarf_Addrs *addrs, const char *fname, uintptr_t *offset) {
+    //cprintf("func %s\n", fname);
     const int flen = strlen(fname);
     if (!flen) return -E_INVAL;
 
@@ -518,10 +519,11 @@ address_by_fname(const struct Dwarf_Addrs *addrs, const char *fname, uintptr_t *
         while (pubnames_entry < pubnames_entry_end) {
             func_offset = get_unaligned(pubnames_entry, uint32_t);
             pubnames_entry += sizeof(uint32_t);
-
+        
             if (!func_offset) break;
-
+            //cprintf("pubnames %s\n", (char *)pubnames_entry);
             if (!strcmp(fname, (const char *)pubnames_entry)) {
+                //cprintf("HElLO\n");
                 /* Parse compilation unit header */
                 const uint8_t *entry = addrs->info_begin + cu_offset;
                 const uint8_t *func_entry = entry + func_offset;
@@ -569,6 +571,16 @@ address_by_fname(const struct Dwarf_Addrs *addrs, const char *fname, uintptr_t *
                      * Attribute value can be obtained using dwarf_read_abbrev_entry function. */
                     uintptr_t low_pc = 0;
                     // LAB 3: Your code here:
+                    //cprintf("entry val: %llx", (long long)entry);
+                    do {
+                        abbrev_entry += dwarf_read_uleb128(abbrev_entry, &name);
+                        abbrev_entry += dwarf_read_uleb128(abbrev_entry, &form);
+                        if (name == DW_AT_low_pc) {
+                            entry += dwarf_read_abbrev_entry(entry, form, &low_pc, sizeof(low_pc), address_size);
+                        } else {
+                            entry += dwarf_read_abbrev_entry(entry, form, NULL, 0, address_size);
+                        }
+                    } while (name || form);
 
 
                     *offset = low_pc;
@@ -650,6 +662,7 @@ naive_address_by_fname(const struct Dwarf_Addrs *addrs, const char *fname, uintp
                         if (form == DW_FORM_strp) {
                             uint64_t str_offset = 0;
                             entry += dwarf_read_abbrev_entry(entry, form, &str_offset, sizeof(uint64_t), address_size);
+                            //cprintf("lets try %s\n", (const char *)addrs->str_begin + str_offset);
                             if (!strcmp(fname, (const char *)addrs->str_begin + str_offset)) found = 1;
                         } else {
                             if (!strcmp(fname, (const char *)entry)) found = 1;

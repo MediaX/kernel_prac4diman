@@ -11,7 +11,6 @@
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
-#include <kern/env.h>
 
 #define WHITESPACE "\t\r\n "
 #define MAXARGS    16
@@ -60,7 +59,7 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf) {
     cprintf("Kernel executable memory footprint: %luKB\n", (unsigned long)ROUNDUP(end - entry, 1024) / 1024);
     return 0;
 }
-
+    
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf) {
     // LAB 2: Your code here

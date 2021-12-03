@@ -23,9 +23,20 @@ sched_yield(void) {
      * If there are no runnable environments,
      * simply drop through to the code
      * below to halt the cpu */
-
+    
     // LAB 3: Your code here:
-    env_run(&envs[0]);
+    int id   = curenv ? ENVX(curenv->env_id) : -1;
+    int orig = id;
+
+    do {
+        id = (id + 1) % NENV; // id ∈ [0; кол-во процессов]
+        if (envs[id].env_status == ENV_RUNNABLE || 
+            (id == orig && envs[id].env_status == ENV_RUNNING)) {
+        // Found suitable environment to run
+        env_run(envs + id);  // envs - массив => envs + id - нужный элемент массива
+        }
+    } while (id != orig);
+
 
     cprintf("Halt\n");
 
