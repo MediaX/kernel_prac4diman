@@ -112,7 +112,6 @@ i386_init(void) {
     ENV_CREATE_KERNEL_TYPE(prog_test1);
     ENV_CREATE_KERNEL_TYPE(prog_test2);
     ENV_CREATE_KERNEL_TYPE(prog_test3);
-    
 #else
 
 #if LAB >= 10
