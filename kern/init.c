@@ -91,7 +91,6 @@ early_boot_pml4_init(void) {
 
 void
 i386_init(void) {
-
     early_boot_pml4_init();
 
     /* Initialize the console.
@@ -136,7 +135,6 @@ i386_init(void) {
     ENV_CREATE(user_hello, ENV_TYPE_USER);
 #endif /* TEST* */
 #endif
-
     /* Schedule and run the first user environment! */
     sched_yield();
 }

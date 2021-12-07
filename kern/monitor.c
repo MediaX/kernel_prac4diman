@@ -11,6 +11,7 @@
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
+#include <kern/kclock.h>
 
 #include <kern/env.h>
 #include <kern/trap.h>
@@ -102,6 +103,18 @@ int mon_dumpcmos(int argc, char **argv, struct Trapframe *tf) {
     // Make sure you understand the values read.
     // Hint: Use cmos_read8()/cmos_write8() functions.
     // LAB 4: Your code here
+    uint8_t try = 0;
+    while (try <= 0x32){
+        if (try % 16 == 0){
+            cprintf("%x:", try);
+        }
+        cprintf(" %x", cmos_read8(try));
+        if (try % 16 == 15){
+            cprintf("\n");
+        }
+        try++;
+    }
+    cprintf("\n");
     return 0;
 }
 
