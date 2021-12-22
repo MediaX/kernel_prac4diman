@@ -225,12 +225,12 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
                     (syms[j].st_size == sizeof(void *))){
                     char *name = strings + syms[j].st_name;
                     uintptr_t addr = find_function((name));
-                    cprintf("addr val %llx\n", (long long)addr);
+                    // cprintf("addr val %llx\n", (long long)addr);
                     if (addr) {
                         // cprintf ("YES\n");
                         if ((syms[j].st_value >= image_start) && (syms[j].st_value <= image_end)){
                             memcpy((void *)syms[j].st_value, &addr, sizeof(void *));
-                            cprintf("st_val val %lx\n", *(uint64_t *)syms[j].st_value);
+                            // cprintf("st_val val %lx\n", *(uint64_t *)syms[j].st_value);
                         }
                     }
                 }
@@ -449,7 +449,7 @@ _Noreturn void
 env_run(struct Env *env) {
     assert(env);
 
-    if (trace_envs_more) {
+    if (1) {
         const char *state[] = {"FREE", "DYING", "RUNNABLE", "RUNNING", "NOT_RUNNABLE"};
         if (curenv) cprintf("[%08X] env stopped: %s\n", curenv->env_id, state[curenv->env_status]);
         cprintf("[%08X] env started: %s\n", env->env_id, state[env->env_status]);

@@ -204,12 +204,32 @@ timer_start(const char *name) {
     (void)timer_id;
     (void)timer;
     (void)freq;
+    timer_started = 1;
+    for(int i = 0; i < MAX_TIMERS; i++){
+        if ((timertab[i].timer_name) && (!strcmp(timertab[i].timer_name, name))){
+            timer_id = i;
+            timer_started = 1;
+            freq = timertab[i].get_cpu_freq();
+            timer = read_tsc();
+        }
+    }
 }
 
 void
 timer_stop(void) {
+    if (timer_started) {
+        print_time((read_tsc() - timer) / freq);
+    } else
+        print_timer_error();
+    timer_started = 0;
 }
 
 void
 timer_cpu_frequency(const char *name) {
+    for(int i = 0; i < MAX_TIMERS; i++){
+        if ((timertab[i].timer_name) && (!strcmp(timertab[i].timer_name, name))){
+            freq = timertab[i].get_cpu_freq();
+            cprintf("%lu\n", freq);
+        }
+    }
 }

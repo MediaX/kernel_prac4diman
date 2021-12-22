@@ -96,7 +96,11 @@ trapname(int trapno) {
 void
 trap_init(void) {
     extern void (*clock_thdlr)(void);
+    extern void (*timer_thdlr)(void);
     idt[IRQ_OFFSET + IRQ_CLOCK] = GATE(0, GD_KT, (uintptr_t)(&clock_thdlr), 0);
+    idt[IRQ_OFFSET + IRQ_TIMER] = GATE(0, GD_KT, (uintptr_t)(&timer_thdlr), 0);
+
+
     // LAB 4: Your code here
     /* Per-CPU setup */
     trap_init_percpu();
@@ -213,11 +217,17 @@ trap_dispatch(struct Trapframe *tf) {
         }
         return;
     case IRQ_OFFSET + IRQ_TIMER:
+        //pic_send_eoi(IRQ_TIMER);
+        timer_for_schedule->handle_interrupts();
+        sched_yield();
+        return;
     case IRQ_OFFSET + IRQ_CLOCK:
         // LAB 5: Your code here
         // LAB 4: Your code here
-        rtc_check_status();
-        pic_send_eoi(IRQ_CLOCK);
+        // if (strcmp(timer_for_schedule->timer_name, "hpet1"))
+        //     rtc_check_status();
+        // pic_send_eoi(IRQ_CLOCK);
+        timer_for_schedule->handle_interrupts();
         sched_yield();
         return;
     default:
