@@ -343,6 +343,7 @@ pmtimer_cpu_frequency(void) {
     uint32_t nextval = timeval;
     uint64_t tmp = 0;
     while (tmp < PM_FREQ / 10){
+        asm("pause");
         nextval = pmtimer_get_timeval();
         if (timeval - nextval <= 0xFFFFFF)
             tmp = nextval - timeval + 0xFFFFFF;
