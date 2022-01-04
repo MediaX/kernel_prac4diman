@@ -88,6 +88,25 @@ envid2env(envid_t envid, struct Env **env_store, bool need_check_perm) {
  */
 void
 env_init(void) {
+
+    /* kzalloc_region only works with current_space != NULL */
+
+    /* Allocate envs array with kzalloc_region
+     * (don't forget about rounding) */
+    // LAB 8: Your code here
+    envs = (struct Env *)kzalloc_region(sizeof(*envs) * NENV);
+    memset(envs, 0, sizeof(*envs) * NENV);
+    /* Map envs to UENVS read-only,
+     * but user-accessible (with PROT_USER_ set) */
+    // LAB 8: Your code here
+    map_region(current_space, UENVS, &kspace, (uintptr_t)envs, UENVS_SIZE, PROT_R | PROT_USER_);
+    // while(env_free_list != NULL){
+    //     cprintf("id: %d\n", env_free_list->env_id);
+    //     env_free_list = env_free_list->env_link;
+    // }
+    /* Set up envs array */
+
+    // LAB 3: Your code here
     int i = 0;
     // cprintf("NENV: %d\n", NENV);
     for(i = 0; i < NENV; i++){
@@ -103,24 +122,6 @@ env_init(void) {
         envs[i].env_status = ENV_FREE;
     }
     env_free_list = envs;
-
-    /* kzalloc_region only works with current_space != NULL */
-
-    /* Allocate envs array with kzalloc_region
-     * (don't forget about rounding) */
-    // LAB 8: Your code here
-
-    /* Map envs to UENVS read-only,
-     * but user-accessible (with PROT_USER_ set) */
-    // LAB 8: Your code here
-
-    // while(env_free_list != NULL){
-    //     cprintf("id: %d\n", env_free_list->env_id);
-    //     env_free_list = env_free_list->env_link;
-    // }
-    /* Set up envs array */
-
-    // LAB 3: Your code here
 
 }
 
@@ -320,6 +321,7 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
         panic("Unexpected ELF format\n");
         return -E_INVALID_EXE;
     }
+    switch_address_space(&env->address_space);
     for(i = 0; i < (int)elf_p->e_phnum; i++){
         // struct Proghdr *cur_ph = NULL;
         // cur_ph = (struct Proghdr *)(binary + elf_p->e_phoff + (elf_p->e_phentsize * i));
@@ -334,11 +336,17 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
             // cprintf("fsize %llu\n", (unsigned long long)cur_ph->p_filesz);
             // cprintf("msize %llu\n", (unsigned long long)cur_ph->p_memsz); 
             // cprintf("flags 0x%x\n", cur_ph->p_flags);
-            sum += prog_header[i].p_memsz;   
-            memcpy((void *)prog_header[i].p_va, 0, prog_header[i].p_memsz);
-            memcpy((void *)prog_header[i].p_va, (void *)((UINT64)binary + prog_header[i].p_offset), prog_header[i].p_filesz);
+            sum += prog_header[i].p_memsz;
+            uintptr_t start_aligned = ROUNDDOWN((uintptr_t)prog_header[i].p_va, PAGE_SIZE);
+			uintptr_t end_aligned = ROUNDUP((uintptr_t)prog_header[i].p_va + prog_header[i].p_memsz, PAGE_SIZE);
+            map_region(&env->address_space, start_aligned, NULL, 0, end_aligned - start_aligned, PROT_RWX | PROT_USER_ | ALLOC_ZERO);  
+            // memcpy((void *)prog_header[i].p_va, 0, prog_header[i].p_memsz);
+            // memcpy((void *)prog_header[i].p_va, binary + prog_header[i].p_offset, prog_header[i].p_filesz);
+            memcpy((void *)start_aligned, binary + prog_header[i].p_offset, prog_header[i].p_filesz);
         }
     }
+    map_region(&env->address_space, USER_STACK_TOP - USER_STACK_SIZE, NULL, 0, USER_STACK_SIZE, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO);
+    switch_address_space(&kspace);
     env->env_tf.tf_rip = elf_p->e_entry;
     bind_functions(env, binary, size, (uintptr_t)elf_p->e_entry, (uintptr_t)(elf_p->e_entry + size));
     // cprintf("\n\n");
@@ -409,6 +417,7 @@ env_destroy(struct Env *env) {
     }
     // LAB 3: Your code here
     // LAB 8: Your code here (set in_page_fault = 0)
+    // in_page_fault = 0;
 }
 
 #ifdef CONFIG_KSPACE
@@ -509,6 +518,7 @@ env_run(struct Env *env) {
     curenv->env_status = ENV_RUNNING;
     curenv->env_runs++;
     // LAB 3: Your code here
+    switch_address_space(&curenv->address_space);
     env_pop_tf(&curenv->env_tf);
     // LAB 8: Your code here
 

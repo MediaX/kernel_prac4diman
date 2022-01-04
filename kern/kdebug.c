@@ -28,35 +28,6 @@ load_kernel_dwarf_info(struct Dwarf_Addrs *addrs) {
     addrs->pubtypes_end = (uint8_t *)(uefi_lp->DebugPubtypesEnd);
 }
 
-void
-load_user_dwarf_info(struct Dwarf_Addrs *addrs) {
-    assert(curenv);
-
-    uint8_t *binary = curenv->binary;
-    assert(curenv->binary);
-    (void)binary;
-
-    struct {
-        const uint8_t **end;
-        const uint8_t **start;
-        const char *name;
-    } sections[] = {
-            {&addrs->aranges_end, &addrs->aranges_begin, ".debug_aranges"},
-            {&addrs->abbrev_end, &addrs->abbrev_begin, ".debug_abbrev"},
-            {&addrs->info_end, &addrs->info_begin, ".debug_info"},
-            {&addrs->line_end, &addrs->line_begin, ".debug_line"},
-            {&addrs->str_end, &addrs->str_begin, ".debug_str"},
-            {&addrs->pubnames_end, &addrs->pubnames_begin, ".debug_pubnames"},
-            {&addrs->pubtypes_end, &addrs->pubtypes_begin, ".debug_pubtypes"},
-    };
-    (void)sections;
-
-    memset(addrs, 0, sizeof(*addrs));
-
-    /* Load debug sections from curenv->binary elf image */
-    // LAB 8: Your code here
-}
-
 #define UNKNOWN       "<unknown>"
 #define CALL_INSN_LEN 5
 
@@ -80,18 +51,8 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
     info->rip_fn_addr = addr;
     info->rip_fn_narg = 0;
 
-    /* Temporarily load kernel cr3 and return back once done.
-    * Make sure that you fully understand why it is necessary. */
-    // LAB 8: Your code here
-
-    /* Load dwarf section pointers from either
-     * currently running program binary or use
-     * kernel debug info provided by bootloader
-     * depending on whether addr is pointing to userspace
-     * or kernel space */
-    // LAB 8: Your code here:
-
     struct Dwarf_Addrs addrs;
+    assert(addr >= MAX_USER_READABLE);
     load_kernel_dwarf_info(&addrs);
 
     Dwarf_Off offset = 0, line_offset = 0;
@@ -153,19 +114,19 @@ find_function(const char *const fname) {
 
 
     // panic("find_function->addr_b_fname: %i", res);
-struct {
-    const char *name;
-    uintptr_t addr;
-  } scentry[] = {
-    { "sys_yield", (uintptr_t)sys_yield },
-    { "sys_exit", (uintptr_t)sys_exit },
-  };
+// struct {
+//     const char *name;
+//     uintptr_t addr;
+//   } scentry[] = {
+//     { "sys_yield", (uintptr_t)sys_yield },
+//     { "sys_exit", (uintptr_t)sys_exit },
+//   };
 
-  for (size_t i = 0; i < sizeof(scentry)/sizeof(*scentry); i++) {
-    if (!strcmp(scentry[i].name, fname)) {
-      return scentry[i].addr;
-    }
-  }
+//   for (size_t i = 0; i < sizeof(scentry)/sizeof(*scentry); i++) {
+//     if (!strcmp(scentry[i].name, fname)) {
+//       return scentry[i].addr;
+//     }
+//   }
 
   struct Dwarf_Addrs addrs;
   load_kernel_dwarf_info(&addrs);

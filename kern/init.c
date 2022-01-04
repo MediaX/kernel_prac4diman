@@ -142,7 +142,7 @@ i386_init(void) {
 
     /* Lab 6 memory management initialization functions */
     init_memory();
-    assert(false);
+    // assert(false);
     pic_init();
     timers_init();
 
@@ -152,9 +152,9 @@ i386_init(void) {
 
     /* User environment initialization functions */
     env_init();
-    assert(false);
+    // assert(false);
     /* Choose the timer used for scheduling: hpet or pit */
-    timers_schedule("rtc");
+    timers_schedule("hpet0");
 
 #ifdef CONFIG_KSPACE
     /* Touch all you want */

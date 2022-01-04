@@ -1548,17 +1548,20 @@ init_address_space(struct AddressSpace *space) {
     /* Allocte page table with alloc_pt into space->cr3
      * (remember to clean flag bits of result with PTE_ADDR) */
     // LAB 8: Your code here
-
+	pte_t pte = 0;
+    alloc_pt(&pte);
+    pte = PTE_ADDR(pte);
+    space->cr3 = (uintptr_t)pte;
     /* put its kernel virtual address to space->pml4 */
     // LAB 8: Your code here
-
+	space->pml4 = KADDR(pte);
     // Allocate virtual tree root node
     // of type INTERMEDIATE_NODE with alloc_rescriptor() of type
     // LAB 8: Your code here
-
+	space->root = alloc_descriptor(INTERMEDIATE_NODE);
     /* Initialize UVPT */
     // LAB 8: Your code here
-
+    space->pml4[PML4_INDEX(UVPT)] = space->cr3 | PTE_P | PTE_U;
     /* Why this call is required here and what does it do? */
     propagate_one_pml4(space, &kspace);
     return 0;
@@ -1831,7 +1834,7 @@ init_memory(void) {
 
     // LAB 7: Your code here
     // Map [PADDR(__text_start);PADDR(__text_end)] to [__text_start, __text_end] as RW-
-    if (map_physical_region(&kspace, (uintptr_t)__text_start, PADDR(__text_start), (size_t)(__text_end - __text_start), PROT_W | PROT_X) < 0){
+    if (map_physical_region(&kspace, (uintptr_t)__text_start, PADDR(__text_start), (size_t)(__text_end - __text_start), PROT_R | PROT_X) < 0){
         panic("Can't map phys region start: %p of size: %lu", (void *)PADDR(__text_start), (size_t)(__text_end - __text_start));
     }
 
@@ -1917,32 +1920,29 @@ init_memory(void) {
     // LAB 7: Your code here
     // Map [FRAMEBUFFER, FRAMEBUFFER + uefi_lp->FrameBufferSize] to
     //     [uefi_lp->FrameBufferBase, uefi_lp->FrameBufferBase + uefi_lp->FrameBufferSize] RW- + PROT_WC
-    if (map_physical_region(&kspace, (uintptr_t)(uefi_lp->FrameBufferBase), FRAMEBUFFER, (size_t)uefi_lp->FrameBufferSize, PROT_W | PROT_R | PROT_WC) < 0){
-        panic("Can't map phys region start: %p of size: %lu", (void *)FRAMEBUFFER, (size_t)(uefi_lp->FrameBufferSize));
-    }
     // Map [X86ADDR(KERN_BASE_ADDR),MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr)] to
     //     [0, MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr)] as RW + ALLOC_WEAK
-    if (map_physical_region(&kspace, (uintptr_t)(X86ADDR(KERN_BASE_ADDR)), (uintptr_t)0, (size_t)MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr), PROT_W | PROT_R | ALLOC_WEAK) < 0){
-        panic("Can't map phys region start: %p of size: %lu", (void *)0, (size_t)MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr));
-    }
     // Map [X86ADDR((uintptr_t)__text_start),ROUNDUP(X86ADDR((uintptr_t)__text_end), CLASS_SIZE(0))] to
     //     [PADDR(__text_start), ROUNDUP(__text_end, CLASS_SIZE(0))] as R-X
-    if (map_physical_region(&kspace, 
-                            (uintptr_t)X86ADDR((uintptr_t)__text_start), 
-                            (uintptr_t)PADDR(__text_start), 
-                            (size_t)(ROUNDUP(X86ADDR((uintptr_t)__text_end), CLASS_SIZE(0)) - X86ADDR((uintptr_t)__text_start)), 
-                            PROT_X | PROT_R) < 0){
-        panic("Can't map phys region start: %p of size: %lu", (void *)PADDR(__text_start), (size_t)(ROUNDUP(X86ADDR((uintptr_t)__text_end), CLASS_SIZE(0)) - X86ADDR((uintptr_t)__text_start)));
-    }
     // Map [X86ADDR(KERN_STACK_TOP - KERN_STACK_SIZE), KERN_STACK_TOP] to
     //     [PADDR(bootstack), PADDR(boottop)] as RW-
-    if (map_physical_region(&kspace, (uintptr_t)(X86ADDR(KERN_STACK_TOP - KERN_STACK_SIZE)), (uintptr_t)PADDR(bootstack), (size_t)KERN_STACK_SIZE, PROT_W | PROT_R) < 0){
-        panic("Can't map phys region start: %p of size: %lu", (void *)PADDR(bootstack), (size_t)KERN_STACK_SIZE);
-    }
     // Map [X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), KERN_PF_STACK_TOP] to
     //     [PADDR(pfstack), PADDR(pfstacktop)] as RW-
-    if (map_physical_region(&kspace, (uintptr_t)(X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE)), (uintptr_t)PADDR(pfstack), (size_t)KERN_PF_STACK_SIZE, PROT_W | PROT_R) < 0){
-        panic("Can't map phys region start: %p of size: %lu", (void *)PADDR(pfstack), (size_t)KERN_PF_STACK_SIZE);
+	
+    if (map_physical_region(&kspace, FRAMEBUFFER, uefi_lp->FrameBufferBase, (uintptr_t)uefi_lp->FrameBufferSize, PROT_R | PROT_W | PROT_WC) < 0) {
+        panic("Cannot map physical region at %p of size %zd", (void *)uefi_lp->FrameBufferBase, (uintptr_t)uefi_lp->FrameBufferSize);
+    }
+    if (map_physical_region(&kspace, X86ADDR(KERN_BASE_ADDR), 0, (uintptr_t)MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr), PROT_R | PROT_W | ALLOC_WEAK) < 0) {
+        panic("Cannot map physical region at %p of size %zd", (void *)0, (uintptr_t)MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr));
+    }
+    if (map_physical_region(&kspace, X86ADDR((uintptr_t)__text_start), PADDR(__text_start), (uintptr_t)ROUNDUP(X86ADDR((uintptr_t)__text_end), CLASS_SIZE(0)) - X86ADDR((uintptr_t)__text_start), PROT_R | PROT_X) < 0) {
+        panic("Cannot map physical region at %p of size %zd", (void *)PADDR(__text_start), (uintptr_t)ROUNDUP(X86ADDR((uintptr_t)__text_end), CLASS_SIZE(0)) - X86ADDR((uintptr_t)__text_start));
+    }
+    if (map_physical_region(&kspace, X86ADDR(KERN_STACK_TOP - KERN_STACK_SIZE), PADDR(bootstack), (uintptr_t)KERN_STACK_SIZE, PROT_R | PROT_W) < 0) {
+        panic("Cannot map physical region at %p of size %zd", (void *)PADDR(bootstack), (uintptr_t)KERN_STACK_SIZE);
+    }
+    if (map_physical_region(&kspace, X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), PADDR(pfstack), (uintptr_t)KERN_PF_STACK_SIZE, PROT_R | PROT_W) < 0) {
+        panic("Cannot map physical region at %p of size %zd", (void *)PADDR(pfstack), (uintptr_t)KERN_PF_STACK_SIZE);
     }
 
     if (trace_memory_more) dump_page_table(kspace.pml4);
@@ -1973,6 +1973,9 @@ static uintptr_t user_mem_check_addr;
 int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm) {
     // LAB 8: Your code here
+    struct Page node;
+    &node = page_lookup_virtual(env->address_space.root, va, 0, 0);
+    if (node.state)
     return -E_FAULT;
 }
 
