@@ -417,7 +417,7 @@ env_destroy(struct Env *env) {
     }
     // LAB 3: Your code here
     // LAB 8: Your code here (set in_page_fault = 0)
-    // in_page_fault = 0;
+    in_page_fault = 0;
 }
 
 #ifdef CONFIG_KSPACE

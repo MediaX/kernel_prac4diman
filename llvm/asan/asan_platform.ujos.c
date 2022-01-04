@@ -82,6 +82,7 @@ static int
 asan_unpoison_shared_region(void *start, void *end, void *arg) {
     (void)start, (void)end, (void)arg;
     // LAB 8: Your code here
+
     return 0;
 }
 
@@ -101,12 +102,19 @@ platform_asan_init() {
 
     /* 1. Program segments (text, data, rodata, bss) */
     // LAB 8: Your code here
+    platform_asan_unpoison(&__text_start, ((size_t)(&__text_end - &__text_start)));
+    platform_asan_unpoison(&__rodata_start, ((size_t)(&__rodata_end - &__rodata_start)));
+    platform_asan_unpoison(&__bss_start, ((size_t)(&__bss_end - &__bss_start)));
+    platform_asan_unpoison(&__data_start, ((size_t)(&__data_end - &__data_start)));
 
     /* 2. Stacks (USER_EXCEPTION_STACK_TOP, USER_STACK_TOP) */
     // LAB 8: Your code here
+    platform_asan_unpoison((void *)(USER_STACK_TOP-USER_STACK_SIZE), (size_t)(USER_STACK_SIZE));
+    platform_asan_unpoison((void *)(USER_EXCEPTION_STACK_TOP-USER_EXCEPTION_STACK_SIZE), (size_t)(USER_EXCEPTION_STACK_SIZE));
 
     /* 3. Kernel exposed info (UENVS, UVSYS (only for lab 12)) */
     // LAB 8: Your code here
+    platform_asan_unpoison((void *)UENVS, (size_t)UENVS_SIZE);
 
 #if LAB >= 12
     platform_asan_unpoison((uptr)UVSYS, NVSYSCALLS * sizeof(int));

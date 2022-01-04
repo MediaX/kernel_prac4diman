@@ -1979,7 +1979,7 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm) {
     while (start < end){
         struct Page *npage = page_lookup_virtual(us_root, (uintptr_t)start, 0, 0);
         if ((!npage->phy) || ((npage->state & PAGE_PROT(perm)) != PAGE_PROT(perm))){
-            user_mem_check_addr = (uintptr_t)start;
+            user_mem_check_addr = MAX((uintptr_t)start, (uintptr_t)va);
             return -E_FAULT;
         }
         start += PAGE_SIZE;
