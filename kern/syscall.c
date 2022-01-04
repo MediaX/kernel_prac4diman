@@ -22,9 +22,7 @@ sys_cputs(const char *s, size_t len) {
     // LAB 8: Your code here
     /* Check that the user has permission to read memory [s, s+len).
     * Destroy the environment if not. */
-    cprintf("before check\n");
 	user_mem_assert(curenv, s, len, PROT_R | PROT_USER_);
-    cprintf("after check\n");
     cprintf("%.*s", (int)len, s);
     return 0;
 }
@@ -75,7 +73,6 @@ uintptr_t
 syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6) {
     /* Call the function corresponding to the 'syscallno' parameter.
      * Return any appropriate return value. */
-    cprintf("sys num %ld\n", syscallno);
     if (syscallno == SYS_cputs) {
         return sys_cputs((const char *)a1, (size_t)a2);
     } else if (syscallno == SYS_cgetc) {

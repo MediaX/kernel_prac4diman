@@ -1973,10 +1973,22 @@ static uintptr_t user_mem_check_addr;
 int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm) {
     // LAB 8: Your code here
-    struct Page node;
-    &node = page_lookup_virtual(env->address_space.root, va, 0, 0);
-    if (node.state)
-    return -E_FAULT;
+    void *start = (void *)ROUNDDOWN(va, PAGE_SIZE);
+    void *end = (void *)((uintptr_t)va + len);
+    struct Page *us_root = env->address_space.root;
+    while (start < end){
+        struct Page *npage = page_lookup_virtual(us_root, (uintptr_t)start, 0, 0);
+        if ((!npage->phy) || ((npage->state & PAGE_PROT(perm)) != PAGE_PROT(perm))){
+            user_mem_check_addr = (uintptr_t)start;
+            return -E_FAULT;
+        }
+        start += PAGE_SIZE;
+    }
+    if ((uintptr_t)(end) > MAX_USER_READABLE){
+        user_mem_check_addr = MAX(MAX_USER_READABLE, (uintptr_t)start);
+        return -E_FAULT;
+    }
+    return 0;
 }
 
 void

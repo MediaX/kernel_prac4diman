@@ -257,7 +257,6 @@ print_regs(struct PushRegs *regs) {
 
 static void
 trap_dispatch(struct Trapframe *tf) {
-    cprintf("we r here\n");
     switch (tf->tf_trapno) {
     case T_SYSCALL:
         tf->tf_regs.reg_rax = syscall(
@@ -297,7 +296,6 @@ trap_dispatch(struct Trapframe *tf) {
         sched_yield();
         return;
     default:
-        cprintf("def handl\n");
         print_trapframe(tf);
         if (!(tf->tf_cs & 3))
             panic("Unhandled trap in kernel");
