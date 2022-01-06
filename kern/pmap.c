@@ -489,19 +489,7 @@ dump_virtual_tree(struct Page *node, int class) {
 void
 dump_memory_lists(void) {
     // LAB 6: Your code here
-    // for (int i = 0; i < MAX_CLASS; i++){
-    //     int count = 0;
-    //     struct List *start, *curr;
-    //     start = &(free_classes[i]);
-    //     if (start){
-    //         curr =start->next;
-    //         while (curr != start){
-    //             curr = curr->next;
-    //             count++;
-    //         }
-    //     }
-    //     cprintf("class %d, free %d\n", i, count);
-    // }
+
     EFI_MEMORY_DESCRIPTOR *start = (void *)uefi_lp->MemoryMap;
     EFI_MEMORY_DESCRIPTOR *end = (void *)(uefi_lp->MemoryMap + uefi_lp->MemoryMapSize);
     uint64_t max_mem_addr = 0;
@@ -520,12 +508,45 @@ dump_memory_lists(void) {
         }
         for (int j = 0; j < num; j++){
             if ((page = page_lookup(NULL, min_mem_addr + j*cur_size, i, ALLOCATABLE_NODE, 0))){
-                if (page->state == ALLOCATABLE_NODE)
+                if (page->state == ALLOCATABLE_NODE){
                     cprintf("phys page addr: 0x%08lx     size: %llu\n", (uint64_t)page->addr << CLASS_BASE, CLASS_SIZE(page->class));
+                }
             }
         }
     }
+}
 
+static void check_page_alloc()
+{
+
+    struct Page *temp = NULL;
+    struct Page *temp2 = NULL;
+    struct Page *temp3 = NULL;
+    while((temp = alloc_page(0, ALLOC_POOL))){
+        temp3 = temp2;
+        temp2 = temp;
+    }
+    // cprintf("%ld\n", free_desc_count);
+    // // dump_memory_lists();
+    // free_descriptor(temp3);
+    free_descriptor(temp2);
+    // dump_memory_lists();
+    // cprintf("%ld\n", free_desc_count);
+    // free_descriptor(new);
+
+    for (int i = 0; i < MAX_CLASS; i++){
+        int count = 0;
+        struct List *start, *curr;
+        start = &(free_classes[i]);
+        if (start){
+            curr =start->next;
+            while (curr != start){
+                curr = curr->next;
+                count++;
+            }
+        }
+        cprintf("class %d, free %d\n", i, count);
+    }
 }
 
 /*
@@ -726,4 +747,6 @@ init_memory(void) {
     detect_memory();
     check_physical_tree(&root);
     if (trace_init) cprintf("Physical memory tree is correct\n");
+    check_page_alloc();
+    assert(false);
 }
