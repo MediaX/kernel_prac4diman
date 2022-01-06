@@ -65,6 +65,8 @@ platform_abort() {
 static bool
 asan_shadow_allocator(struct UTrapframe *utf) {
     // LAB 9: Your code here
+
+    sys_alloc_region(thisenv->env_id, (void *)asan_internal_shadow_start, (size_t)(asan_internal_shadow_end - asan_internal_shadow_start), ALLOC_ONE | PROT_W | PROT_R);
     return 0;
 }
 #endif
