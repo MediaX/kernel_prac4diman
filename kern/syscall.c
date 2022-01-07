@@ -226,10 +226,10 @@ sys_map_region(envid_t srcenvid, uintptr_t srcva,
     struct Env *denv = NULL;
     int r = envid2env(srcenvid, &senv, 1);
     if ((r < 0) || (senv == NULL))
-        return r;
+        return -1;
     r = envid2env(dstenvid, &denv, 1);
     if ((r < 0) || (denv == NULL))
-        return r;
+        return -1;
     if ((CLASS_MASK(0) & srcva) || (CLASS_MASK(0) & dstva) || (srcva >= MAX_USER_ADDRESS) || (dstva >= MAX_USER_ADDRESS))
         return -E_INVAL;
 
@@ -381,7 +381,17 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
 static int
 sys_region_refs(uintptr_t addr, size_t size, uintptr_t addr2, uintptr_t size2) {
     // LAB 10: Your code here
-    return 0;
+    int first = region_maxref(&curenv->address_space, addr, size);
+    int second = 0;
+    if (addr2 < MAX_USER_ADDRESS){
+        second = region_maxref(&curenv->address_space, addr2, size2);
+        if ((second - first) < 0)
+            return first - second;
+        else
+            return second - first;
+    } else {
+        return first;
+    }
 }
 
 /* Dispatches to the correct kernel function, passing the arguments. */
@@ -416,6 +426,8 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
         return sys_ipc_recv(a1, a2);
     } else if (syscallno == SYS_ipc_try_send){
         return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, a3, (size_t)a4, (int)a5);
+    } else if (syscallno == SYS_region_refs){
+        return sys_region_refs(a1, (size_t)a2, a3, a4);
     }
     // LAB 8: Your code here
     // LAB 9: Your code here

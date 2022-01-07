@@ -129,6 +129,7 @@ dev_lookup(int dev_id, struct Dev **dev) {
 int
 close(int fdnum) {
     struct Fd *fd;
+
     int res = fd_lookup(fdnum, &fd);
     if (res < 0) return res;
 
@@ -205,7 +206,7 @@ readn(int fdnum, void *buf, size_t n) {
 ssize_t
 write(int fdnum, const void *buf, size_t n) {
     int res;
-
+    
     struct Fd *fd;
     if ((res = fd_lookup(fdnum, &fd)) < 0) return res;
 

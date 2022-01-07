@@ -376,6 +376,9 @@ env_create(uint8_t *binary, size_t size, enum EnvType type) {
     r = env_alloc(&env, 0, type);
     if (r < 0)
         panic("env alloc: %i", r);
+    if (type == ENV_TYPE_FS){
+        env->env_tf.tf_rflags |= FL_IOPL_3;
+    }
     env->binary = binary;
     load_icode(env, binary, size);
 
@@ -501,7 +504,7 @@ _Noreturn void
 env_run(struct Env *env) {
     assert(env);
 
-    if (1) {
+    if (0) {
         const char *state[] = {"FREE", "DYING", "RUNNABLE", "RUNNING", "NOT_RUNNABLE"};
         if (curenv) cprintf("[%08X] env stopped: %s\n", curenv->env_id, state[curenv->env_status]);
         cprintf("[%08X] env started: %s\n", env->env_id, state[env->env_status]);
