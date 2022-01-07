@@ -42,5 +42,12 @@ int
 foreach_shared_region(int (*fun)(void *start, void *end, void *arg), void *arg) {
     /* Calls fun() for every shared region */
     // LAB 11: Your code here
+    for (size_t i = 0; i < MAX_USER_ADDRESS; i+=PAGE_SIZE){
+        if ((get_uvpt_entry((void *)i) & (PTE_P | PTE_SHARE)) == ((PTE_P | PTE_SHARE))){
+            int r = fun((void *)i, (void *)(i + PAGE_SIZE), arg);
+            if (r < 0)
+                panic("foreach_shared_region: fun %i", r);
+        }
+    }
     return 0;
 }

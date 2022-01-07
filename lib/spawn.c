@@ -277,7 +277,24 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
     }
 
     // LAB 11: Your code here
-
+    int r = 0;
+    for (int i = 0; i < memsz; i += PAGE_SIZE){
+        if (i >= filesz){
+            if ((r = sys_alloc_region(child, (void *)(va + i), PAGE_SIZE, perm)) < 0)
+                return r;
+        } else {
+            if ((r = sys_alloc_region(0, UTEMP, PAGE_SIZE, PTE_P | PTE_U | PTE_W)) < 0)
+                return r;
+            if ((r = seek(fd, fileoffset + i)) < 0)
+                return r;
+            if ((r = readn(fd, UTEMP, MIN(PAGE_SIZE, filesz-i))) < 0){
+                return r;
+            }
+            if ((r = sys_map_region(0, UTEMP, child, (void *)(va + i), PAGE_SIZE, perm)) < 0)
+                panic("map segment: sys_map_region %i", r);
+            sys_unmap_region(0, UTEMP, PAGE_SIZE);
+        }
+    }
     /* Allocate filesz - memsz in child */
     /* Allocate filesz in parent to UTEMP */
     /* seek() fd to fileoffset  */

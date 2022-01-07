@@ -383,6 +383,24 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
 static int
 sys_env_set_trapframe(envid_t envid, struct Trapframe *tf) {
     // LAB 11: Your code here
+    int r = 0;
+    struct Env *env = NULL;
+    if ((r = envid2env(envid, &env, 1)) < 0){
+        return r;
+    }
+    if (env == NULL)
+        return -E_INVAL;
+    user_mem_assert(curenv, (void *)tf, sizeof(*tf), 0);
+
+    nosan_memcpy(&env->env_tf, (void *)tf, sizeof(*tf));
+
+    env->env_tf.tf_cs = GD_UT | 3;
+    env->env_tf.tf_ds = GD_UD | 3;
+    env->env_tf.tf_es = GD_UD | 3;
+    env->env_tf.tf_ss = GD_UD | 3;
+    env->env_tf.tf_rflags &= PROT_ALL;
+    env->env_tf.tf_rflags |= FL_IF;
+
     return 0;
 }
 
@@ -444,6 +462,8 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
         return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, a3, (size_t)a4, (int)a5);
     } else if (syscallno == SYS_region_refs){
         return sys_region_refs(a1, (size_t)a2, a3, a4);
+    } else if (syscallno == SYS_env_set_trapframe){
+        return sys_env_set_trapframe((envid_t)a1, (struct Trapframe *)a2);
     }
     // LAB 8: Your code here
     // LAB 9: Your code here
