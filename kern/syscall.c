@@ -313,6 +313,8 @@ sys_ipc_try_send(envid_t envid, uint32_t value, uintptr_t srcva, size_t size, in
     int r = envid2env(envid, &reciever, 0);
     if ((r < 0) || (reciever == NULL))
         return -E_BAD_ENV;
+    // cprintf("reciever's from send id %d\n", reciever->env_id);
+    // cprintf("env ipc recieving %d\n", reciever->env_ipc_recving);
     if (reciever->env_ipc_recving == 0)
         return -E_IPC_NOT_RECV;
     if ((srcva < MAX_USER_ADDRESS)){
@@ -355,6 +357,7 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
         return -E_INVAL;
     if (PAGE_OFFSET(maxsize))
         return -E_INVAL;
+    // cprintf("reciever's id %d\n", curenv->env_id);
     curenv->env_ipc_recving = 1;
     if (dstva < MAX_USER_ADDRESS){
         curenv->env_ipc_maxsz = maxsize;

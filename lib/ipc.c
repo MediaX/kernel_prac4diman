@@ -28,7 +28,7 @@ ipc_recv(envid_t *from_env_store, void *pg, size_t *size, int *perm_store) {
     }
     r = sys_ipc_recv(pg, PAGE_SIZE);
     if (r < 0) {
-        cprintf("incorrect ipc_recv\n");
+        // cprintf("incorrect ipc_recv\n");
         if (from_env_store != NULL) {
             *from_env_store = 0;
         }
@@ -37,7 +37,7 @@ ipc_recv(envid_t *from_env_store, void *pg, size_t *size, int *perm_store) {
         }
         return r;
     } else {
-        cprintf("correct ipc_recv\n");
+        // cprintf("correct ipc_recv\n");
         if (from_env_store != NULL) {
             *from_env_store = thisenv->env_ipc_from;
         }
@@ -59,20 +59,25 @@ ipc_recv(envid_t *from_env_store, void *pg, size_t *size, int *perm_store) {
 void
 ipc_send(envid_t to_env, uint32_t val, void *pg, size_t size, int perm) {
     // LAB 9: Your code here:
-    int r = 0;
+    int r = -E_IPC_NOT_RECV;
     if (pg != NULL){
-        while (r >= 0){
+        while (r != 0){
             r = sys_ipc_try_send(to_env, val, pg, size, perm);
+            // cprintf("return value %d\n", r);
             if ((r < 0) && (r != -E_IPC_NOT_RECV))
                 panic("send error with code %i\n", r);
+            // if (r == -E_IPC_NOT_RECV)
+            //     cprintf ("not waiting for data1\n");
             sys_yield();
         }
     } else {
         pg = (void *)MAX_USER_ADDRESS;
-        while (r >= 0){
+        while (r != 0){
             r = sys_ipc_try_send(to_env, val, pg, size, perm);
             if ((r < 0) && (r != -E_IPC_NOT_RECV))
                 panic("send error with code %i\n", r);
+            // if (r == -E_IPC_NOT_RECV)
+            //     cprintf ("not waiting for data2\n");
             sys_yield();
         }
     }

@@ -11,6 +11,7 @@ umain(int argc, char **argv) {
         /* get the ball rolling */
         cprintf("send 0 from %x to %x\n", sys_getenvid(), who);
         ipc_send(who, 0, 0, 0, 0);
+        cprintf("exit from send\n");
     }
     
     while (1) {

@@ -33,6 +33,7 @@ fork(void) {
         return -3;
     if (sys_env_set_status(envid, ENV_RUNNABLE) < 0)
         return -4;
+    // sys_yield();
     return envid;
 
     // panic("fork() is not implemented");
