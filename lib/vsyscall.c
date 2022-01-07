@@ -4,7 +4,11 @@
 static inline uint64_t
 vsyscall(int num) {
     // LAB 12: Your code here
-    return 0;
+    if (num >= NVSYSCALLS){
+        return -1;
+    } else {
+        return vsys[num]; 
+    }
 }
 
 int

@@ -1825,6 +1825,8 @@ init_memory(void) {
         panic("Can't map phys region start: %p of size: %lu", (void *)0, (size_t)max_memory_map_addr);
     }
 
+    
+
     extern char __text_end[], __text_start[];
     assert(!((uintptr_t)__text_start & CLASS_MASK(0)));
     assert(__text_end - __text_start < MAX_LOW_ADDR_KERN_SIZE);

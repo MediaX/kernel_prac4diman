@@ -300,6 +300,7 @@ trap_dispatch(struct Trapframe *tf) {
     case IRQ_OFFSET + IRQ_TIMER:
         //pic_send_eoi(IRQ_TIMER);
         timer_for_schedule->handle_interrupts();
+        vsys[VSYS_gettime] = gettime();
         sched_yield();
         return;
     case IRQ_OFFSET + IRQ_CLOCK:
@@ -310,6 +311,7 @@ trap_dispatch(struct Trapframe *tf) {
         //     rtc_check_status();
         // pic_send_eoi(IRQ_CLOCK);
         timer_for_schedule->handle_interrupts();
+        vsys[VSYS_gettime] = gettime();
         sched_yield();
         return;
         /* Handle keyboard and serial interrupts. */
