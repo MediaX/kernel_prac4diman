@@ -42,11 +42,20 @@ int
 foreach_shared_region(int (*fun)(void *start, void *end, void *arg), void *arg) {
     /* Calls fun() for every shared region */
     // LAB 11: Your code here
-    for (size_t i = 0; i < MAX_USER_ADDRESS; i+=PAGE_SIZE){
-        if ((get_uvpt_entry((void *)i) & (PTE_P | PTE_SHARE)) == ((PTE_P | PTE_SHARE))){
-            int r = fun((void *)i, (void *)(i + PAGE_SIZE), arg);
-            if (r < 0)
-                panic("foreach_shared_region: fun %i", r);
+    for (uintptr_t i = 0; i < MAX_USER_ADDRESS; i += (1LL << PML4_SHIFT)){
+        if (uvpml4[VPML4(i)] & PTE_P){
+            for (uintptr_t j = i; j < i + (1LL << PML4_SHIFT); j += (1LL << PDP_SHIFT)){
+                if (uvpdp[VPDP(j)] & PTE_P){
+                    for (uintptr_t k = j; k < j + (1LL << PDP_SHIFT); k += (1LL << PD_SHIFT)){
+                        if (uvpd[VPD(k)] & PTE_P){
+                            for (uintptr_t addr = k; addr < k + (1LL << PD_SHIFT); addr += (1LL << PT_SHIFT)){
+                                if (uvpt[VPT(addr)] & PTE_P && uvpt[VPT(addr)] & PTE_SHARE)
+                                    fun((void*)addr, (void *)(addr + PAGE_SIZE), arg);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     return 0;
